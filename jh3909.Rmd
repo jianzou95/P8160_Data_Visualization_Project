@@ -1,0 +1,26 @@
+---
+title: "Jingxuan"
+author: "Jingxuan He"
+date: "February 2, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(httr)
+library(rvest)
+library(janitor)
+library(stringr)
+library(ggplot2)
+library(hexbin)
+library(plotly)
+library(knitr)
+library(DT)
+```
+
+### Prepare the data
+```{r}
+pollution = 
+```
