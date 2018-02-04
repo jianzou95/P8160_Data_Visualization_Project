@@ -14,6 +14,8 @@ pollution <- read.csv("pollution_us_2000_2016_short.csv")%>%
   mutate(date = as.Date(date, format="%m/%d/%Y"))%>%
   mutate(date = substr(date, 3, 10)) # convert
   
+pollution_new <- pollution %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-")
 str(pollution)
 ```
 
