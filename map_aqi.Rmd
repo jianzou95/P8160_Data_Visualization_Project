@@ -1,0 +1,53 @@
+---
+title: "map"
+author: "Jian Zou"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## A whole version of the map
+```{r}
+library(tidyverse)
+library(janitor)
+library(plotly)
+
+pollution <- read.csv("pollution_us_2000_2016_short.csv")%>%
+  clean_names()%>%
+  mutate(date = as.Date(date, format="%m/%d/%Y"))%>%
+  mutate(date = substr(date, 3, 10)) # convert
+  
+pollution_aqi_map <- pollution %>% 
+  select(state, date, no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
+  gather(key = pollutants, value = aqi, no2_aqi:co_aqi) %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-")%>%
+  mutate(pollutants = str_replace(pollutants,"_aqi",""))
+
+map_no2 = 
+  pollution_aqi_map %>%
+  filter(pollutants == "no2") %>%
+  group_by(state) %>%
+  summarise(no2 = mean(aqi)) %>%
+  ungroup() %>%
+  na.omit() %>%
+  mutate(state = state.abb[match(state,state.name)])
+
+geo_info <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('white')
+)
+
+plot_geo(map_no2, locationmode = 'USA-states') %>%
+add_trace(
+  z = ~no2, locations = ~state,
+  color = ~no2, colors = 'OrRd'
+) %>%
+colorbar(title = "no2 aqi") %>%
+layout(
+  geo = geo_info
+  )
+```
