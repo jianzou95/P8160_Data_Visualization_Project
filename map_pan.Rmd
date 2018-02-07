@@ -1,0 +1,69 @@
+---
+title: "Map part2"
+author: "Lynette Pan"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(plotly)
+library(ggplot2)
+library(ggridges)
+pollution = read.csv("pollution_us_2000_2016_short.csv")%>%
+  clean_names() %>%
+  mutate(date = as.Date(date, format="%m/%d/%Y"))%>%
+  mutate(date = substr(date, 3, 10), 
+         state =  as.character(state)) # convert
+  
+pollution_aqi_map = pollution %>% 
+  select(state, date, no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
+  gather(key = pollutants, value = aqi, no2_aqi:co_aqi) %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-")%>%
+  mutate(pollutants = stringr::str_replace(pollutants,"_aqi",""),
+         state = state.abb[match(state,state.name)]) %>% 
+  group_by(year, pollutants, state) %>% 
+  summarise(mean_aqi = mean(aqi, na.rm = TRUE)) %>% 
+  ungroup()
+
+
+pollution_aqi_map %>% 
+  filter(pollutants == "no2") %>% 
+  select(year, mean_aqi, pollutants, state) %>%
+  ggplot(aes(x = year, y = mean_aqi, color = state)) +
+  geom_point() +
+  geom_line(aes(group = state)) +
+  labs(x ="Year (2010 - 2016)", y = "mean api for NO2", title= "Change of mean NO2 api throughout study period")
+
+
+```
+
+```{r}
+pollution_aqi_map %>% 
+  filter(pollutants == "o3") %>% 
+  select(year, mean_aqi, pollutants, state) %>%
+  ggplot(aes(x = year, y = mean_aqi, color = state)) +
+  geom_point() +
+  geom_line(aes(group = state)) +
+  labs(x ="Year (2010 - 2016)", y = "mean api for O3", title= "Change of mean O3 api throughout study period")
+
+```
+
+
+
+```{r}
+pollution_aqi_map %>% 
+  filter(pollutants == "so2") %>% 
+  select(year, mean_aqi, pollutants, state) %>%
+  ggplot(aes(x = year, y = mean_aqi, color = state)) +
+  geom_point() +
+  geom_line(aes(group = state)) +
+  labs(x ="Year (2010 - 2016)", y = "mean api for SO2", title= "Change of mean SO2 api throughout study period")
+
+
+
+```

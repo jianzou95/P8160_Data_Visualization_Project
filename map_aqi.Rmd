@@ -23,7 +23,7 @@ pollution_aqi_map <- pollution %>%
   select(state, date, no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
   gather(key = pollutants, value = aqi, no2_aqi:co_aqi) %>% 
   separate(date, into = c("year", "month", "day"), sep = "-")%>%
-  mutate(pollutants = str_replace(pollutants,"_aqi",""))
+  mutate(pollutants = stringr::str_replace(pollutants,"_aqi",""))
 
 map_no2 = 
   pollution_aqi_map %>%
@@ -50,4 +50,14 @@ colorbar(title = "no2 aqi") %>%
 layout(
   geo = geo_info
   )
+```
+
+
+
+### Lynette's code
+
+```{r}
+
+
+
 ```
