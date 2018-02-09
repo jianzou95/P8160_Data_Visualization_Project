@@ -1,0 +1,217 @@
+---
+title: "final project"
+author: "Xinyan Zheng"
+date: "February 4, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+library(ggmap)
+library(rvest)
+library(ggridges)
+
+data <- read.csv("pollution_us_2000_2016_short.csv")%>%
+  clean_names()%>%
+  mutate(no2_aqi = sqrt(no2_aqi),
+         o3_aqi = sqrt(o3_aqi),
+         so2_aqi = sqrt(so2_aqi),
+         co_aqi = sqrt(co_aqi))
+
+
+plot(density(data$no2_aqi))
+plot(density(data$o3_aqi))
+plot(density(data$so2_aqi))# decide on median
+plot(density(data$co_aqi,na.rm=TRUE)) #NA only in co
+
+pollution <- data%>%
+  separate(date, into = c("month", "day", "year"), sep = "/")%>%
+  gather(key = pollutants, value = aqi, no2_aqi,o3_aqi, so2_aqi, co_aqi )%>%
+  mutate(pollutants = sapply(strsplit(pollutants, "_"), "[", 1),
+         month = as.numeric(month),
+         day = as.numeric(day),
+         year = as.numeric(year),
+         pollutants = as.factor(pollutants))%>%
+  select(state,county, city, address, month, year, day,pollutants, aqi)%>%
+  na.omit()
+str(pollution)
+
+#summarize
+
+#pollution%>%
+#  select(aqi, pollutants)%>%
+#  ggplot(aes(x=aqi,y= pollutants))+
+#  geom_density_ridges()
+
+#pollution%>%
+#  select(aqi, pollutants)%>%
+#  ggplot(aes(x=aqi))+facet_grid(pollutants~.)+
+#  geom_density()
+  
+  
+#  geom_density_ridges()
+
+
+#pollution%>%
+#  select(aqi, pollutants)%>%
+#  mutate(log_aqi= log(aqi+0.01))%>% # still get 1000 observation to be infinity
+#  ggplot(aes(x=aqi,y= pollutants))+
+#  geom_density_ridges(stat = "density_ridges")+
+#  xlim(0, 100)
+
+
+```
+
+```{r, eval=FALSE, include=FALSE}
+pollution%>%
+  select(state, year,month, pollutants, aqi)%>%
+  filter(pollutants == "no2")%>%
+  group_by(year,state)%>%
+  summarise(mean_aqi = mean(aqi))%>%
+  arrange(year,mean_aqi)%>%
+  ggplot(aes(x= state, y=mean_aqi, color= as.factor(year)))+
+  geom_point()+ggtitle(" the annaual no2 aqi in each state")+
+  theme(axis.text.x = element_text(angle = 45))
+
+```
+
+ highest to be in Colorado and utah,district of columbia, tennessee is low and stable. Not every state has the same amount of observation times.
+
+```{r, eval=FALSE, include=FALSE}
+pollution%>%
+  select(state, city,month, pollutants, aqi)%>%
+  filter(pollutants == "no2", city=="Colorado" & "Utah")%>%
+  group_by(year,city)%>%
+  summarise(mean_aqi = mean(aqi))%>%
+  mutate(lon= geocode(as.character(city))[1],
+         lat= geocode(as.character(city))[2])%>%
+  ggmap(qmap("colorado" & "utah"))+
+  geom_point(aes(x=lon, y=lat,color=year, size= mean_aqi))+ggtitle(" the annaual no2 aqi in observed city of Colorado and Utah ")+
+  theme(axis.text.x = element_text(angle = 45))
+```
+
+
+```{r, eval=FALSE, include=FALSE}
+
+pollution%>%
+  select(state, year,month, pollutants, aqi)%>%
+  filter(pollutants == "so2")%>%
+  group_by(year,state)%>%
+  summarise(mean_aqi = mean(aqi))%>%
+  arrange(year,mean_aqi)%>%
+  ggplot(aes(x= state, y=mean_aqi, color= as.factor(year)))+
+  geom_point()+ggtitle(" the annaual so2 aqi in each state")+
+  theme(axis.text.x = element_text(angle = 45))
+
+```
+not as various as no2 aqi among states , the highest being district of columbia, which is  a part of the state of Maryland
+
+```{r, eval=FALSE, include=FALSE}
+
+pollution%>%
+  select(state, year,month, pollutants, aqi)%>%
+  filter(pollutants == "o3")%>%
+  group_by(year,state)%>%
+  summarise(mean_aqi = mean(aqi))%>%
+  arrange(year,mean_aqi)%>%
+  ggplot(aes(x= state, y=mean_aqi, color= as.factor(year)))+
+  geom_point()+ggtitle(" the annaual 03 aqi in each state")+
+  theme(axis.text.x = element_text(angle = 45))
+
+```
+
+highest being indiana 
+
+```{r, eval=FALSE, include=FALSE}
+pollution%>%
+  select(state, year,month, pollutants, aqi)%>%
+  filter(pollutants == "co")%>%
+  group_by(year,state)%>%
+  summarise(mean_aqi = mean(aqi))%>%
+  arrange(year,mean_aqi)%>%
+  ggplot(aes(x= state, y=mean_aqi, color= as.factor(year)))+
+  geom_point()+ggtitle(" the annaual co aqi in each state")+
+  theme(axis.text.x = element_text(angle = 45))
+
+```
+highest being country of mexico, disctrict of columbia and kansas
+
+```{r, cache=TRUE}
+url <- "https://inkplant.com/code/state-latitudes-longitudes"
+dict_lat_lon <- read_html(url)%>%
+  html_nodes(.,css="table")%>%
+  html_table(header= TRUE)%>%
+  as.data.frame()%>%
+  clean_names()
+get_lat_lon <- left_join(pollution, dict_lat_lon, by = "state")   
+
+usamap <-  ggmap(get_map(as.numeric(geocode("United States"))
+, scale=1, zoom=4), extent = "normal")
+
+state_total_mean <- function(substance, color){
+ annual_pollutants_mean <- get_lat_lon%>%
+  filter(pollutants == substance, state != "Hawaii")%>%
+  select(state,aqi,longitude,latitude)%>%
+  group_by(state)%>%
+  mutate(mean_aqi = mean(aqi))
+
+usamap+
+  geom_point(data= annual_pollutants_mean, aes(x=longitude, y=latitude,size= mean_aqi),col=color)+
+  ggtitle(paste(" the total mean",substance, "aqi in each state"))
+ 
+}
+# leave out the hawaii and mexico
+
+state_total_mean("no2","orange") # similar among different states with tenenneecc being extremely small
+#state_total_mean("so2","red") using median instead / several states in the middle of US is significantly high
+state_total_mean("o3","purple")# oregon to be very low and new mecixo ~ line to be high
+state_total_mean("co","black")# similarly high among all the state except woyming
+
+# only for so2
+ annual_so2_median <- get_lat_lon%>%
+  filter(pollutants == "so2", state != "Hawaii")%>%
+  select(state,aqi,longitude,latitude)%>%
+  group_by(state)%>%
+  mutate(median_aqi = median(aqi))
+
+usamap+
+  geom_point(data= annual_so2_median, aes(x=longitude, y=latitude,size= median_aqi),alpha=0.02,col="red")+
+  ggtitle(paste(" the total median so2 aqi in each state"))
+ 
+# 3414 being mexico
+```
+
+
+```{r}
+pollution_aqi_cat <- pollution_aqi %>% 
+  mutate(., o3_aqi_cat = ifelse(o3_aqi %in% 0:54, "good", ifelse(o3_aqi %in% 55:70, "moderate", ifelse(o3_aqi %in% 71:85, "unhealthy for senstitive", ifelse(o3_aqi %in% 86:105, "unhealth", "very unhealthy")))),
+         co_aqi_cat = ifelse(co_aqi %in% 0:4.4, "good", ifelse(co_aqi %in% 4.5:9.4, "moderate", ifelse(co_aqi %in% 9.5:12.4, "unhealthy for senstitive", ifelse(co_aqi %in% 12.5:15.4, "unhealth", ifelse(co_aqi %in% 15.5:30.4, "very unhealth", "hazardous"))))),
+         so2_aqi_cat = ifelse(so2_aqi %in% 0:35, "good", ifelse(so2_aqi %in% 36:75, "moderate", ifelse(so2_aqi %in% 76:185, "unhealthy for senstitive", ifelse(so2_aqi %in% 186:304, "unhealth", ifelse(so2_aqi %in% 305:604, "very unhealth", "hazardous"))))),
+         no2_aqi_cat = ifelse(no2_aqi %in% 0:53, "good", ifelse(no2_aqi %in% 54:100, "moderate", ifelse(no2_aqi %in% 101:360, "unhealthy for senstitive", ifelse(no2_aqi %in% 361:649, "unhealth", ifelse(no2_aqi %in% 650:1249, "very unhealth", "hazardous"))))),
+         ) %>% 
+  select(-no2_aqi, -co_aqi, -so2_aqi, -o3_aqi)
+
+pollution_c <- pollution %>%
+  gather(key = pollutants, value = aqi, no2_aqi:co_aqi) %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-")%>%
+  select(state, year, month, day,aqi, pollutants)%>%
+  mutate(poll`utants = strsplit(pollutants,"_")[[1]][1])
+pollution_c%>%
+  select(state, pollutants,aqi,year) %>%
+  filter(pollutants == "no2")%>%
+  group_by(year, state)%>%
+  mutate(mean_aqi=mean(aqi))
+  arrange(mean_aqi)%>%
+  head(.,6)
+  
+  
+  
+  
+  
+
+  
+
+
+```
