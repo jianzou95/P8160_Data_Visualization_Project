@@ -53,11 +53,137 @@ layout(
 ```
 
 
+```{r NO2}
+library(ggplot2)
+library(fiftystater)
 
-### Lynette's code
+library(tidyverse)
+library(janitor)
+library(plotly)
 
-```{r}
+pollution <- read.csv("pollution_us_2000_2016_short.csv")%>%
+  clean_names()%>%
+  mutate(date = as.Date(date, format="%m/%d/%Y"))%>%
+  mutate(date = substr(date, 3, 10)) # convert
+  
+pollution_aqi_map <- pollution %>% 
+  select(state, date, no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
+  gather(key = pollutants, value = aqi, no2_aqi:co_aqi) %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-")%>%
+  mutate(pollutants = stringr::str_replace(pollutants,"_aqi",""))
 
+map_no2 = 
+  pollution_aqi_map %>%
+  filter(pollutants == "no2") %>%
+  group_by(state) %>%
+  summarise(no2 = mean(aqi)) %>%
+  ungroup() %>%
+  mutate(state = tolower(state)) %>%
+  na.omit()
+
+data("fifty_states") # this line is optional due to lazy data loading
+
+# map_id creates the aesthetic mapping to the state name column in your data
+p <- ggplot(map_no2, aes(map_id = state)) + 
+  # map points to the fifty_states shape data
+  geom_map(aes(fill = no2), map = fifty_states) + 
+  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+  coord_map() +
+  scale_fill_gradient2(low="#deebf7", mid = "#9ecae1", high="#3182bd") +
+  scale_x_continuous(breaks = NULL) + 
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "", y = "") +
+  ggtitle("NO2 Distribution") +
+  theme(legend.position = "right", 
+        panel.background = element_blank()) + 
+  fifty_states_inset_boxes() + 
+  borders("state", colour = "#3182bd")
+
+p
+```  
+
+```{r O3}
+map_o3 = 
+  pollution_aqi_map %>%
+  filter(pollutants == "o3") %>%
+  group_by(state) %>%
+  summarise(o3 = mean(aqi)) %>%
+  ungroup() %>%
+  mutate(state = tolower(state)) %>%
+  na.omit()
+
+p <- ggplot(map_o3, aes(map_id = state)) + 
+  # map points to the fifty_states shape data
+  geom_map(aes(fill = o3), map = fifty_states) + 
+  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+  coord_map() +
+  scale_fill_gradient(low="#e5f5e0", high="#31a354") +
+  scale_x_continuous(breaks = NULL) + 
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "", y = "") +
+  ggtitle("O3 Distribution") +
+  theme(legend.position = "right", 
+        panel.background = element_blank()) + 
+  fifty_states_inset_boxes() + 
+  borders("state", colour = "#31a354")
+
+p
+```
+
+```{r co}
+map_co = 
+  pollution_aqi_map %>%
+  filter(pollutants == "co") %>%
+  group_by(state) %>%
+  summarise(co = mean(aqi)) %>%
+  ungroup() %>%
+  mutate(state = tolower(state)) %>%
+  na.omit()
+
+p <- ggplot(map_co, aes(map_id = state)) + 
+  # map points to the fifty_states shape data
+  geom_map(aes(fill = co), map = fifty_states) + 
+  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+  coord_map() +
+  scale_fill_gradient(low="#e5f5e0", high="#31a354") +
+  scale_x_continuous(breaks = NULL) + 
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "", y = "") +
+  ggtitle("CO Distribution") +
+  theme(legend.position = "right", 
+        panel.background = element_blank()) + 
+  fifty_states_inset_boxes() + 
+  borders("state", colour = "#31a354")
+
+p
+```
+
+```{r SO2}
+map_so2 = 
+  pollution_aqi_map %>%
+  filter(pollutants == "so2") %>%
+  group_by(state) %>%
+  summarise(so2 = mean(aqi)) %>%
+  ungroup() %>%
+  mutate(state = tolower(state)) %>%
+  na.omit()
+
+p <- ggplot(map_so2, aes(map_id = state)) + 
+  # map points to the fifty_states shape data
+  geom_map(aes(fill = so2), map = fifty_states) + 
+  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+  coord_map() +
+  scale_fill_gradient(low="#efedf5", high="#756bb1") +
+  scale_x_continuous(breaks = NULL) + 
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "", y = "") +
+  ggtitle("SO2 Distribution") +
+  theme(legend.position = "right", 
+        panel.background = element_blank()) + 
+  fifty_states_inset_boxes() + 
+  borders("state", colour = "#756bb1")
+
+p
 
 
 ```
