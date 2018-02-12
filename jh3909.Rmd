@@ -76,14 +76,13 @@ pollution_aqi_state = data %>%
   ungroup()
 
 pollution_aqi_state %>% 
-  group_by(pollutants) %>%
+  filter(pollutants == "co") %>%
   mutate(name = forcats::fct_reorder(state, mean_aqi_state)) %>%
   ggplot(aes(x = name, y = mean_aqi_state, color = pollutants)) +
   geom_boxplot(outlier.alpha = 0.1) +
   geom_line(aes(group = pollutants, color = pollutants)) +
-  labs(x ="Months (year 2010- 2016)", y = "mean aqi for all states", title= "Change of mean aqi of all states for 6 years") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-  facet_wrap(~pollutants, ncol = 2, scales="free_x")
+  labs(x ="States", y = "Mean aqi for all states", title= "Change of mean aqi of all states for 6 years") +
+  theme(axis.text.x = element_text(angle = 70, hjust = 1))
 
 plot1 = pollution_aqi_state %>% 
   filter(pollutants == "no2") %>%
