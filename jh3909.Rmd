@@ -62,5 +62,35 @@ pairs.panels(pollutant,
              density = TRUE,  # show density plots
              ellipses = TRUE # show correlation ellipses
              )
+```
 
+### Location scale
+```{r}
+pollution_aqi_state = data %>% 
+  select(state, date, no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
+  gather(key = pollutants, value = aqi, no2_aqi:co_aqi) %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-")%>%
+  mutate(pollutants = stringr::str_replace(pollutants,"_aqi","")) %>% 
+  group_by(pollutants, state) %>% 
+  mutate(mean_aqi_state = mean(aqi, na.rm = TRUE)) %>% 
+  ungroup()
+
+pollution_aqi_state %>% 
+  group_by(pollutants) %>%
+  mutate(name = forcats::fct_reorder(state, mean_aqi_state)) %>%
+  ggplot(aes(x = name, y = mean_aqi_state, color = pollutants)) +
+  geom_boxplot(outlier.alpha = 0.1) +
+  geom_line(aes(group = pollutants, color = pollutants)) +
+  labs(x ="Months (year 2010- 2016)", y = "mean aqi for all states", title= "Change of mean aqi of all states for 6 years") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  facet_wrap(~pollutants, ncol = 2, scales="free_x")
+
+plot1 = pollution_aqi_state %>% 
+  filter(pollutants == "no2") %>%
+  mutate(name = forcats::fct_reorder(state, mean_aqi_state)) %>%
+  ggplot(aes(x = name, y = mean_aqi_state, color = pollutants)) +
+  geom_boxplot() +
+  geom_line(aes(group = pollutants, color = pollutants)) +
+  labs(x ="Months (year 2010- 2016)", y = "mean aqi for all states", title= "Change of mean aqi of all states for 6 years") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = "none")
 ```
