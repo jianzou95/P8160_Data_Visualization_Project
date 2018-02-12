@@ -18,9 +18,49 @@ library(hexbin)
 library(plotly)
 library(knitr)
 library(DT)
+library(lubridate)
+library(car)
+library(psych)
+
 ```
 
 ### Prepare the data
 ```{r}
-pollution = 
+data = read_csv("./pollution_us_2000_2016_short.csv") %>%
+  clean_names() %>%
+  mutate(date = mdy(date)) %>%
+  arrange(date)
+  
+```
+
+### Seperate the pollutant
+```{r}
+NO2_pollutant = data %>%
+  select(state_code:date, no2_mean:no2_aqi)
+
+O3_pollutant = data %>%
+  select(state_code:date, o3_mean:o3_aqi)
+  
+
+SO2_pollutant = data %>%
+  select(state_code:date, so2_mean:so2_aqi)
+
+CO_pollutant = data %>%
+  select(state_code:date, co_mean:co_aqi) 
+
+pollutant = data %>%
+  select(no2_aqi, o3_aqi, so2_aqi, co_aqi) %>%
+  sample_n(5000)
+  
+
+```
+
+### relationship between pollutants
+```{r}
+pairs.panels(pollutant, 
+             method = "pearson", # correlation method
+             density = TRUE,  # show density plots
+             ellipses = TRUE # show correlation ellipses
+             )
+
 ```

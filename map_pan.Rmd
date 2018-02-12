@@ -14,50 +14,115 @@ library(janitor)
 library(plotly)
 library(ggplot2)
 library(ggridges)
+
+
 pollution = read.csv("pollution_us_2000_2016_short.csv")%>%
   clean_names() %>%
   mutate(date = as.Date(date, format="%m/%d/%Y"))%>%
   mutate(date = substr(date, 3, 10))
 
 
-pollution_aqi_map = pollution %>% 
+pollution_aqi_month = pollution %>% 
   select(state, date, no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
   gather(key = pollutants, value = aqi, no2_aqi:co_aqi) %>% 
   separate(date, into = c("year", "month", "day"), sep = "-")%>%
   mutate(pollutants = stringr::str_replace(pollutants,"_aqi","")) %>% 
   group_by(year, pollutants, state) %>% 
-  summarise(mean_aqi = mean(aqi, na.rm = TRUE)) %>% 
+  mutate(mean_aqi = mean(aqi, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(year, month, pollutants, state) %>% 
+  mutate(mean_aqi_month = mean(aqi, na.rm = TRUE)) %>% 
   ungroup()
 
 
-pollution_aqi_map %>% 
+pollution_aqi_month %>% 
+  select(year, month, mean_aqi_month, pollutants, state) %>%
+  unite(., year_month, c(year, month), remove=FALSE) %>% 
+  ggplot(aes(x = year_month, y = mean_aqi_month, color = pollutants)) +
+  geom_boxplot(outlier.alpha = 0.1) +
+  geom_line(aes(group = pollutants, color = pollutants)) +
+  labs(x ="Months (year 2010- 2016)", y = "mean aqi for all states", title= "Change of mean aqi of all states for 6 years") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  facet_wrap(~pollutants, ncol = 1)
+
+
+
+```
+
+## plot; seasons as x-axis
+
+
+```{r}
+
+month = seq(1, 12, 1)
+season = c(rep("winter",2), rep("spring",3), rep("summer",3), rep("fall",3), "winter")
+seasons = data.frame(month, season)
+
+pollution_aqi_month %>% 
+  mutate(month = as.numeric(month)) %>% 
+  merge(., seasons, by = "month") %>% 
+  unite(., year_season, c(year, season), remove=FALSE) %>% 
+  group_by(year_season, pollutants, state) %>% 
+  mutate(mean_aqi_season = mean(aqi, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  select(year_season, mean_aqi_season, pollutants, state) %>%
+  ggplot(aes(x = year_season, y = mean_aqi_season, color = pollutants)) +
+  geom_boxplot(outlier.alpha = 0.1) +
+  geom_line(aes(group = pollutants, color = pollutants)) +
+  labs(x ="Seasons (year 2010- 2016)", y = "mean aqi for all states", title= "Change of mean aqi of all states for 6 years") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  facet_wrap(~pollutants, ncol = 1)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+pollution_aqi_month%>% 
+  filter(pollutants == "o3") %>% 
+  select(year, mean_aqi, pollutants, state)
+
+
+ggplot(data=a, aes(x = year, y = mean_aqi, color = state)) +
+  geom_point() +
+  geom_line(aes(group = state)) +
+  labs(x ="Year (2010 - 2016)", y = "mean api for o3", title= "Change of mean o3 api throughout study period")+
+  theme(legend.text=element_text(size=5))
+
+
+
+
+pollution_aqi_month %>% 
   filter(pollutants == "no2") %>% 
   select(year, mean_aqi, pollutants, state) %>%
   ggplot(aes(x = year, y = mean_aqi, color = state)) +
   geom_point() +
   geom_line(aes(group = state)) +
-  labs(x ="Year (2010 - 2016)", y = "mean api for NO2", title= "Change of mean NO2 api throughout study period")+
+  labs(x ="Year (2010 - 2016)", y = "mean api for no2", title= "Change of mean no2 api throughout study period") +
   theme(legend.text=element_text(size=5))
 
-
-```
-
-```{r}
-pollution_aqi_map %>% 
-  filter(pollutants == "o3") %>% 
-  select(year, mean_aqi, pollutants, state) %>%
-  ggplot(aes(x = year, y = mean_aqi, color = state)) +
-  geom_point() +
-  geom_line(aes(group = state)) +
-  labs(x ="Year (2010 - 2016)", y = "mean api for O3", title= "Change of mean O3 api throughout study period")+
-  theme(legend.text=element_text(size=5))
-
+ggplotly(p = ggplot2::last_plot())
 ```
 
 
 
 ```{r}
-pollution_aqi_map %>% 
+pollution_aqi_month %>% 
   filter(pollutants == "so2") %>% 
   select(year, mean_aqi, pollutants, state) %>%
   ggplot(aes(x = year, y = mean_aqi, color = state)) +
@@ -65,6 +130,24 @@ pollution_aqi_map %>%
   geom_line(aes(group = state)) +
   labs(x ="Year (2010 - 2016)", y = "mean api for SO2", title= "Change of mean SO2 api throughout study period")+
   theme(legend.text=element_text(size=5))
+
+
+
+```
+
+
+
+```{r}
+pollution_aqi_month %>% 
+  filter(pollutants == "co") %>% 
+  select(year, mean_aqi, pollutants, state) %>%
+  ggplot(aes(x = year, y = mean_aqi, color = state)) +
+  geom_point() +
+  geom_line(aes(group = state)) +
+  labs(x ="Year (2010 - 2016)", y = "mean api for CO", title= "Change of mean CO api throughout study period")+
+  theme(legend.text=element_text(size=5))
+
+
 
 
 
