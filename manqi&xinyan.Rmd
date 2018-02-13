@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(janitor)
+library(plotly)
+library(stringr)
 
 pollution <- read.csv("pollution_us_2000_2016_short.csv")%>%
   clean_names()%>%
@@ -15,12 +17,11 @@ pollution <- read.csv("pollution_us_2000_2016_short.csv")%>%
   mutate(date = substr(date, 3, 10)) # convert
   
 pollution_gather_aqi <- pollution %>% 
-  select(date,no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
   gather(key = pollutants, value = aqi, no2_aqi:co_aqi) %>% 
   separate(date, into = c("year", "month", "day"), sep = "-")
 
 pollution_aqi <- pollution %>% 
-  select(date,no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
+  #select(date,no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
   separate(date, into = c("year", "month", "day"), sep = "-")
 str(pollution)
 ```
@@ -65,49 +66,49 @@ We have searched the cut off point for each pollutants
 
 ```{r categorize aqi}
 pollution_aqi_cat <- pollution_aqi %>% 
-  mutate(., o3_aqi_cat = ifelse(o3_aqi %in% 0:54, "good", ifelse(o3_aqi %in% 55:70, "moderate", ifelse(o3_aqi %in% 71:85, "unhealthy for senstitive", ifelse(o3_aqi %in% 86:105, "unhealth", "very unhealthy")))),
-         co_aqi_cat = ifelse(co_aqi %in% 0:4.4, "good", ifelse(co_aqi %in% 4.5:9.4, "moderate", ifelse(co_aqi %in% 9.5:12.4, "unhealthy for senstitive", ifelse(co_aqi %in% 12.5:15.4, "unhealth", ifelse(co_aqi %in% 15.5:30.4, "very unhealth", "hazardous"))))),
-         so2_aqi_cat = ifelse(so2_aqi %in% 0:35, "good", ifelse(so2_aqi %in% 36:75, "moderate", ifelse(so2_aqi %in% 76:185, "unhealthy for senstitive", ifelse(so2_aqi %in% 186:304, "unhealth", ifelse(so2_aqi %in% 305:604, "very unhealth", "hazardous"))))),
-         no2_aqi_cat = ifelse(no2_aqi %in% 0:53, "good", ifelse(no2_aqi %in% 54:100, "moderate", ifelse(no2_aqi %in% 101:360, "unhealthy for senstitive", ifelse(no2_aqi %in% 361:649, "unhealth", ifelse(no2_aqi %in% 650:1249, "very unhealth", "hazardous"))))),
+  mutate(., o3_aqi_cat = ifelse(o3_aqi %in% 0:54, "good", ifelse(o3_aqi %in% 55:70, "moderate", ifelse(o3_aqi %in% 71:85, "unhealthy for senstitive", ifelse(o3_aqi %in% 86:105, "unhealthy", "very unhealthy")))),
+         co_aqi_cat = ifelse(co_aqi %in% 0:4.4, "good", ifelse(co_aqi %in% 4.5:9.4, "moderate", ifelse(co_aqi %in% 9.5:12.4, "unhealthy for senstitive", ifelse(co_aqi %in% 12.5:15.4, "unhealthy", ifelse(co_aqi %in% 15.5:30.4, "very unhealthy", "hazardous"))))),
+         so2_aqi_cat = ifelse(so2_aqi %in% 0:35, "good", ifelse(so2_aqi %in% 36:75, "moderate", ifelse(so2_aqi %in% 76:185, "unhealthy for senstitive", ifelse(so2_aqi %in% 186:304, "unhealthy", ifelse(so2_aqi %in% 305:604, "very unhealthy", "hazardous"))))),
+         no2_aqi_cat = ifelse(no2_aqi %in% 0:53, "good", ifelse(no2_aqi %in% 54:100, "moderate", ifelse(no2_aqi %in% 101:360, "unhealthy for senstitive", ifelse(no2_aqi %in% 361:649, "unhealthy", ifelse(no2_aqi %in% 650:1249, "very unhealthy", "hazardous"))))),
          ) %>% 
-  select(-no2_aqi, -co_aqi, -so2_aqi, -o3_aqi)
+  select(-no2_aqi, -co_aqi, -so2_aqi, -o3_aqi) %>% 
+  gather(key = pollutants, value = AQI, o3_aqi_cat:no2_aqi_cat) %>% 
+  mutate(pollutants = str_replace(pollutants, "_aqi_cat", "")) %>% 
+  mutate(AQI = ordered(AQI, levels = c("good", "moderate", "unhealthy for senstitive", "unhealthy", "very unhealthy", "hazardous")))
 ```
 
 ```{r}
-pollution_aqi_cat <- pollution_aqi_cat %>% 
-  gather(key = pollutants, value = aqi, o3_aqi_cat:no2_aqi_cat)
+
+  
 
 pollution_aqi_cat %>% 
-  group_by(year, aqi) %>% 
-  summarize(n = n()) %>% 
-  spread(key = aqi, value = n) 
-
-#overall aqi bar plot
-pollution_aqi_cat %>% 
-  mutate(year = fct_infreq(year)) %>%
-  ggplot(aes(x = year, fill = aqi)) + geom_bar()
+  group_by(year, AQI, pollutants) %>% 
+  ggplot(aes(x = year, fill = AQI)) + geom_bar()+facet_grid(~pollutants)+ggtitle("AQI distribution of US from 2010-2016")
 
 
-#o3_aqi bar plot
-pollution_aqi_cat %>% 
-  filter(pollutants == "o3_aqi_cat") %>% 
-  ggplot(aes(x = year, fill = aqi)) + geom_bar()
-
-#co
-pollution_aqi_cat %>% 
-  filter(pollutants == "co_aqi_cat") %>% 
-  ggplot(aes(x = year, fill = aqi)) + geom_bar()
-
-
-#no2
-pollution_aqi_cat %>% 
-  filter(pollutants == "no2_aqi_cat") %>% 
-  ggplot(aes(x = year, fill = aqi)) + geom_bar()
-
-#so2
-pollution_aqi_cat %>% 
-  filter(pollutants == "so2_aqi_cat") %>% 
-  ggplot(aes(x = year, fill = aqi)) + geom_bar()
 ```
 
+```{r}
+#data description
+pollution %>% 
+  group_by(state) %>% 
+  summarise(n = n())
+
+pollution %>% 
+  group_by(county) %>% 
+  summarise(n = n())
+
+pollution %>% 
+  group_by(city) %>% 
+  summarise(n = n())
+
+
+```
+
+```{r}
+bar <- pollution_aqi_cat %>% 
+  ggplot(aes(x = factor(1), fill = aqi))+ geom_bar(width = 1)+facet_grid(~year)
+pie <- bar + coord_polar(theta = "y")
+pie
+```
 
