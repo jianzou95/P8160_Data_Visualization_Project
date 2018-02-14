@@ -77,18 +77,18 @@ pollution_aqi_state = data %>%
   ungroup()
 
 median  = pollution_aqi_state %>% 
-  filter(pollutants == "so2") %>%
+  filter(pollutants == "no2") %>%
   select(state, median_aqi_state) %>%
   mutate(name = forcats::fct_reorder(state, median_aqi_state)) %>% 
   distinct()
   
 pollution_aqi_state %>% 
-  filter(pollutants == "so2", 
-         state == "Nevada"| state =="Iowa"| state =="North Dakota"| state =="Tennessee"| state =="California"|state =="Ohio"|state =="Pennsylvania"|state =="Kansas"|state =="Country Of Mexico"|state =="Indiana") %>%
+  filter(pollutants == "no2", 
+         state == "Massachusetts"| state =="Country Of Mexico"| state =="Hawaii"| state =="Oregon"| state =="Alabama"|state =="Nevada"|state =="New Mexico"|state =="Tennessee"|state =="Utah"|state =="Wyoming") %>%
   mutate(name = forcats::fct_reorder(state, median_aqi_state)) %>%
   ggplot(aes(x = name, y = aqi)) +
   geom_boxplot(outlier.alpha = 0.1) +
-  labs(x ="States", y = "Mean aqi for all states", title= "Change of SO2 aqi of all states for 6 years") +
+  labs(x ="States", y = "Aqi for all states", title= "NO2 aqi") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 plot1 = pollution_aqi_state %>% 
