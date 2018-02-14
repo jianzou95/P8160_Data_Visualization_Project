@@ -8,27 +8,107 @@ output: html_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(janitor)
+library(plotly)
+library(stringr)
 
 pollution <- read.csv("pollution_us_2000_2016_short.csv")%>%
   clean_names()%>%
   mutate(date = as.Date(date, format="%m/%d/%Y"))%>%
   mutate(date = substr(date, 3, 10)) # convert
   
-pollution_aqi <- pollution %>% 
-  select(date,no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
+pollution_gather_aqi <- pollution %>% 
   gather(key = pollutants, value = aqi, no2_aqi:co_aqi) %>% 
-  separate(date, into = c("year", "month", "day"), sep = "-")%>%
-  substr(pollutants, -4,)
+  separate(date, into = c("year", "month", "day"), sep = "-")
+
+pollution_aqi <- pollution %>% 
+  #select(date,no2_aqi, o3_aqi, so2_aqi, co_aqi) %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-")
 str(pollution)
 ```
 
-```{r}
-pollution_aqi %>% 
+```{r line plot for each pollutants}
+pollution_gather_aqi %>% 
   group_by(pollutants,year) %>%
   summarize(mean_aqi = mean(aqi, na.rm = TRUE)) %>% 
   ggplot(aes(x = year, y = mean_aqi, color = pollutants)) + 
     geom_point() + geom_line() + 
     theme(legend.position = "bottom")
 
+
+
+  
+```
+From the point and line plot given above, we can see that overall the 
+
+```{r boxplot for each pollutants given year}
+pollution_aqi %>% 
+  mutate(year = fct_reorder(year, no2_aqi)) %>% 
+  plot_ly(y = ~no2_aqi, color = ~year, type = "box",
+          colors = "Set2")
+
+pollution_aqi %>% 
+  mutate(year = fct_reorder(year, o3_aqi)) %>% 
+  plot_ly(y = ~o3_aqi, color = ~year, type = "box",
+          colors = "Set2")
+
+pollution_aqi %>% 
+  mutate(year = fct_reorder(year, so2_aqi)) %>% 
+  plot_ly(y = ~so2_aqi, color = ~year, type = "box",
+          colors = "Set2")
+
+pollution_aqi %>% 
+  mutate(year = fct_reorder(year, co_aqi)) %>% 
+  plot_ly(y = ~co_aqi, color = ~year, type = "box",
+          colors = "Set2")
+```
+From the box plots given above, we can further categorize our data into different level of aqi given each pollutants
+We have searched the cut off point for each pollutants
+
+```{r categorize aqi}
+pollution_aqi_cat <- pollution_aqi %>% 
+  mutate(., o3_aqi_cat = ifelse(o3_aqi %in% 0:54, "good", ifelse(o3_aqi %in% 55:70, "moderate", ifelse(o3_aqi %in% 71:85, "unhealthy for senstitive", ifelse(o3_aqi %in% 86:105, "unhealthy", "very unhealthy")))),
+         co_aqi_cat = ifelse(co_aqi %in% 0:4.4, "good", ifelse(co_aqi %in% 4.5:9.4, "moderate", ifelse(co_aqi %in% 9.5:12.4, "unhealthy for senstitive", ifelse(co_aqi %in% 12.5:15.4, "unhealthy", ifelse(co_aqi %in% 15.5:30.4, "very unhealthy", "hazardous"))))),
+         so2_aqi_cat = ifelse(so2_aqi %in% 0:35, "good", ifelse(so2_aqi %in% 36:75, "moderate", ifelse(so2_aqi %in% 76:185, "unhealthy for senstitive", ifelse(so2_aqi %in% 186:304, "unhealthy", ifelse(so2_aqi %in% 305:604, "very unhealthy", "hazardous"))))),
+         no2_aqi_cat = ifelse(no2_aqi %in% 0:53, "good", ifelse(no2_aqi %in% 54:100, "moderate", ifelse(no2_aqi %in% 101:360, "unhealthy for senstitive", ifelse(no2_aqi %in% 361:649, "unhealthy", ifelse(no2_aqi %in% 650:1249, "very unhealthy", "hazardous"))))),
+         ) %>% 
+  select(-no2_aqi, -co_aqi, -so2_aqi, -o3_aqi) %>% 
+  gather(key = pollutants, value = AQI, o3_aqi_cat:no2_aqi_cat) %>% 
+  mutate(pollutants = str_replace(pollutants, "_aqi_cat", "")) %>% 
+  mutate(AQI = ordered(AQI, levels = c("good", "moderate", "unhealthy for senstitive", "unhealthy", "very unhealthy", "hazardous")))
+```
+
+```{r}
+
+  
+
+pollution_aqi_cat %>% 
+  group_by(year, AQI, pollutants) %>% 
+  ggplot(aes(x = year, fill = AQI)) + geom_bar()+facet_grid(~pollutants)+ggtitle("AQI distribution of US from 2010-2016")
+
+
+```
+
+```{r}
+#data description
+pollution %>% 
+  group_by(state) %>% 
+  summarise(n = n())
+
+pollution %>% 
+  group_by(county) %>% 
+  summarise(n = n())
+
+pollution %>% 
+  group_by(city) %>% 
+  summarise(n = n())
+
+
+```
+
+```{r}
+bar <- pollution_aqi_cat %>% 
+  ggplot(aes(x = factor(1), fill = aqi))+ geom_bar(width = 1)+facet_grid(~year)
+pie <- bar + coord_polar(theta = "y")
+pie
 ```
 
