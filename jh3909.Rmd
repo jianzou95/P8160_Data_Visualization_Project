@@ -72,17 +72,24 @@ pollution_aqi_state = data %>%
   separate(date, into = c("year", "month", "day"), sep = "-")%>%
   mutate(pollutants = stringr::str_replace(pollutants,"_aqi","")) %>% 
   group_by(pollutants, state) %>% 
-  mutate(mean_aqi_state = mean(aqi, na.rm = TRUE)) %>% 
+  mutate(mean_aqi_state = mean(aqi, na.rm = TRUE),
+         median_aqi_state = median(aqi, na.rm = TRUE)) %>% 
   ungroup()
 
+median  = pollution_aqi_state %>% 
+  filter(pollutants == "so2") %>%
+  select(state, median_aqi_state) %>%
+  mutate(name = forcats::fct_reorder(state, median_aqi_state)) %>% 
+  distinct()
+  
 pollution_aqi_state %>% 
-  filter(pollutants == "co") %>%
-  mutate(name = forcats::fct_reorder(state, mean_aqi_state)) %>%
-  ggplot(aes(x = name, y = mean_aqi_state, color = pollutants)) +
+  filter(pollutants == "so2", 
+         state == "Nevada"| state =="Iowa"| state =="North Dakota"| state =="Tennessee"| state =="California"|state =="Ohio"|state =="Pennsylvania"|state =="Kansas"|state =="Country Of Mexico"|state =="Indiana") %>%
+  mutate(name = forcats::fct_reorder(state, median_aqi_state)) %>%
+  ggplot(aes(x = name, y = aqi)) +
   geom_boxplot(outlier.alpha = 0.1) +
-  geom_line(aes(group = pollutants, color = pollutants)) +
-  labs(x ="States", y = "Mean aqi for all states", title= "Change of mean aqi of all states for 6 years") +
-  theme(axis.text.x = element_text(angle = 70, hjust = 1))
+  labs(x ="States", y = "Mean aqi for all states", title= "Change of SO2 aqi of all states for 6 years") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 plot1 = pollution_aqi_state %>% 
   filter(pollutants == "no2") %>%
